@@ -24,9 +24,7 @@ jobs:
         pip install -r requirements.txt
     - name: Run script
       run: |
-        rm -f ./data/.gitkeep
         python main.py
-        mv opendata.zip ./data
     - name: deploy
       uses: peaceiris/actions-gh-pages@v3
       with:
