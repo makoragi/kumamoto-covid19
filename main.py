@@ -13,7 +13,7 @@ from retry import retry
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko"
 
-DOWNLOAD_DIR = "download"
+DOWNLOAD_DIR = "data"
 DATA_DIR = "data"
 
 # ファイルダウンロード
