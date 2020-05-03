@@ -113,7 +113,19 @@ data["inspections_summary"] = {
 
 weeks = ["月", "火", "水", "木", "金", "土", "日"]
 
-df_kanja = pd.read_csv(kanja_path, index_col="No", parse_dates=["公表_年月日", "確定_年月日"])
+df_kanja = pd.read_csv(
+    kanja_path,
+    index_col="No",
+    parse_dates=["公表_年月日", "確定_年月日"],
+    dtype={
+        "No": "Int64",
+        "全国地方公共団体コード": "Int64",
+        "患者_渡航歴の有無フラグ": "Int64",
+        "患者_退院済フラグ": "Int64",
+    },
+)
+
+df_kanja.dropna(how="all", inplace=True)
 
 df_kanja.columns = df_kanja.columns.map(lambda s: s.replace("患者_", ""))
 
