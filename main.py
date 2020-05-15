@@ -38,7 +38,7 @@ r = requests.get(url, headers={"User-Agent": USER_AGENT})
 r.raise_for_status()
 
 soup = BeautifulSoup(r.content, "html.parser")
-tag = soup.find("h3", text="新型コロナウイルス感染症").next_sibling.find_all("tr")
+tag = soup.find("h3", text="新型コロナウイルス感染症").find_next("table").find_all("tr")
 
 # オープンデータのURL
 
