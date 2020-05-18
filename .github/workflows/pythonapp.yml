@@ -7,7 +7,7 @@ on:
   repository_dispatch:
     types: [on-demand-test]
   schedule:
-    - cron:  '31 6 * * *'
+    - cron:  '28 7 * * *'
 
 jobs:
   build:
@@ -43,10 +43,7 @@ jobs:
         publish_branch: gh-pages
     - name: Commit files
       run: |
-        git config --local user.email secrets.EMAIL
-        git config --local user.name "Scraping Bot"
-        git status | grep modified && git add data.json && git commit -v -m "[Bot] GitHub Actions - auto run. Update at $(date +'%Y-%m-%d')" \
-          && curl -X POST \
+        curl -X POST \
             -H "Authorization: Bearer ${{ secrets.ACCESS_TOKEN }}" \
             -H "Accept: application/vnd.github.everest-preview+json" \
             -H "Content-Type: application/json" \
