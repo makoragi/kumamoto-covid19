@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
+
+
 import datetime
 import json
 import pathlib
 import re
 
+from bs4 import BeautifulSoup
+import chardet
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 
 from retry import retry
 
@@ -26,10 +30,21 @@ def get_file(url, file_name, dir="."):
     p = pathlib.Path(dir, file_name)
     p.parent.mkdir(parents=True, exist_ok=True)
 
-    with p.open(mode='wb') as fw:
+    with p.open(mode="wb") as fw:
         fw.write(r.content)
 
     return p
+
+
+def get_enc(file):
+
+    with open(file, "rb") as fr:
+        result = chardet.detect(fr.read())
+
+    print(result["encoding"])
+
+    return result["encoding"]
+
 
 # スクレイピング
 
@@ -62,22 +77,19 @@ dt_update = dt_now.strftime("%Y/%m/%d %H:%M")
 data = {"lastUpdate": dt_update}
 
 # contacts
-
-df_soudan = pd.read_csv(soudan_path)
+codec = get_enc(soudan_path)
+df_soudan = pd.read_csv(soudan_path, encoding=codec)
 
 df_soudan["受付_年月日"] = pd.to_datetime(df_soudan["受付_年月日"])
 
 df_soudan.set_index("受付_年月日", inplace=True)
 
-df_contacts = (
-    pd.to_numeric(df_soudan["相談件数"], errors="coerce").dropna().astype(int).reset_index()
-)
+pd.to_numeric(df_soudan["相談件数"], errors="coerce").dropna().astype(int)
 
-df_contacts["日付"] = df_contacts["受付_年月日"].dt.strftime("%Y-%m-%d")
+ser_contacts = pd.to_numeric(df_soudan["相談件数"], errors="coerce").dropna().astype(int)
 
-df_contacts.rename(columns={"相談件数": "小計"}, inplace=True)
-
-df_contacts.drop(columns=["受付_年月日"], inplace=True)
+df_contacts = pd.DataFrame({"小計": ser_contacts})
+df_contacts["日付"] = df_contacts.index.strftime("%Y-%m-%d")
 
 data["contacts"] = {
     "data": df_contacts.to_dict(orient="records"),
@@ -86,8 +98,10 @@ data["contacts"] = {
 
 # inspections_summary
 
+codec = get_enc(kensa_path)
+
 df_kensa = (
-    pd.read_csv(kensa_path)
+    pd.read_csv(kensa_path, encoding=codec)
     .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
     .dropna()
     .astype(int)
@@ -113,6 +127,8 @@ data["inspections_summary"] = {
 
 weeks = ["月", "火", "水", "木", "金", "土", "日"]
 
+codec = get_enc(kanja_path)
+
 df_kanja = pd.read_csv(
     kanja_path,
     parse_dates=["公表_年月日", "確定_年月日"],
@@ -122,6 +138,7 @@ df_kanja = pd.read_csv(
         "患者_渡航歴の有無フラグ": "Int64",
         "患者_退院済フラグ": "Int64",
     },
+    encoding=codec,
 )
 
 df_kanja.dropna(how="all", inplace=True)
@@ -144,21 +161,12 @@ data["patients"] = {
 
 # patients_summary
 
-ser_patients_sum = (
-    df_kanja["公表_年月日"]
-    .value_counts()
-    .sort_index()
-)
+ser_patients_sum = df_kanja["公表_年月日"].value_counts().sort_index()
 if df_kensa.index[-1] not in ser_patients_sum.index:
     ser_patients_sum[df_kensa.index[-1]] = 0
 
-df_patients_sum = ser_patients_sum.asfreq("D", fill_value=0).reset_index()
-    
-df_patients_sum["日付"] = df_patients_sum["index"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
-
-df_patients_sum.rename(columns={"公表_年月日": "小計"}, inplace=True)
-
-df_patients_sum.drop(columns=["index"], inplace=True)
+df_patients_sum = pd.DataFrame({"小計": ser_patients_sum.asfreq("D", fill_value=0)})
+df_patients_sum["日付"] = df_patients_sum.index.strftime("%Y-%m-%dT08:00:00.000Z")
 
 data["patients_summary"] = {
     "data": df_patients_sum.to_dict(orient="records"),
@@ -179,7 +187,13 @@ df_kanja["状況"] = df_kanja["状況"].mask(
 )
 
 situation = df_kanja["状況"].value_counts()
-condition = df_kanja["症状"].value_counts()
+condition = (
+    df_kanja["症状"]
+    .value_counts()
+    .reindex(["無症状", "軽症", "中等症", "重症"])
+    .fillna(0)
+    .astype(int)
+)
 
 data["main_summary"] = {
     "attr": "検査実施人数",
