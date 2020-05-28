@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import datetime
 import json
 import pathlib
@@ -53,7 +52,7 @@ r = requests.get(url, headers={"User-Agent": USER_AGENT})
 r.raise_for_status()
 
 soup = BeautifulSoup(r.content, "html.parser")
-tag = soup.find("h3", text="新型コロナウイルス感染症").find_next("table").find_all("tr")
+tag = soup.find("h3", text="新型コロナウイルス感染症").parent.find_all("tr")
 
 # オープンデータのURL
 
@@ -78,7 +77,15 @@ data = {"lastUpdate": dt_update}
 
 # contacts
 codec = get_enc(soudan_path)
-df_soudan = pd.read_csv(soudan_path, encoding=codec)
+
+for sep in [",", "\t"]:
+
+    try:
+        df_soudan = pd.read_csv(soudan_path, sep=sep, encoding=codec)
+        break
+
+    except:
+        continue
 
 df_soudan["受付_年月日"] = pd.to_datetime(df_soudan["受付_年月日"])
 
@@ -100,12 +107,20 @@ data["contacts"] = {
 
 codec = get_enc(kensa_path)
 
-df_kensa = (
-    pd.read_csv(kensa_path, encoding=codec)
-    .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
-    .dropna()
-    .astype(int)
-)
+for sep in [",", "\t"]:
+
+    try:
+        df_kensa = (
+            pd.read_csv(kensa_path, sep=sep, encoding=codec)
+            .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
+            .dropna()
+            .astype(int)
+        )
+
+        break
+
+    except:
+        continue
 
 df_kensa.rename(columns={430005: "熊本県", 431001: "熊本市"}, inplace=True)
 
@@ -129,17 +144,26 @@ weeks = ["月", "火", "水", "木", "金", "土", "日"]
 
 codec = get_enc(kanja_path)
 
-df_kanja = pd.read_csv(
-    kanja_path,
-    parse_dates=["公表_年月日", "確定_年月日"],
-    dtype={
-        "No": "int",
-        "全国地方公共団体コード": "Int64",
-        "患者_渡航歴の有無フラグ": "Int64",
-        "患者_退院済フラグ": "Int64",
-    },
-    encoding=codec,
-)
+for sep in [",", "\t"]:
+
+    try:
+        df_kanja = pd.read_csv(
+            kanja_path,
+            sep=sep,
+            parse_dates=["公表_年月日", "確定_年月日"],
+            dtype={
+                "No": "int",
+                "全国地方公共団体コード": "Int64",
+                "患者_渡航歴の有無フラグ": "Int64",
+                "患者_退院済フラグ": "Int64",
+            },
+            encoding=codec,
+        )
+
+        break
+
+    except:
+        continue
 
 df_kanja.dropna(how="all", inplace=True)
 
