@@ -35,16 +35,6 @@ def get_file(url, file_name, dir="."):
     return p
 
 
-def get_enc(file):
-
-    with open(file, "rb") as fr:
-        result = chardet.detect(fr.read())
-
-    print(result["encoding"])
-
-    return result["encoding"]
-
-
 # スクレイピング
 
 url = "https://www.pref.kumamoto.jp/kiji_22038.html"
@@ -56,15 +46,21 @@ tag = soup.find("h3", text="新型コロナウイルス感染症").parent.find_a
 
 # オープンデータのURL
 
-soudan_csv = tag[1].find("img", src=re.compile("csv.gif$")).find_parent("a").get("href")
-kanja_csv = tag[2].find("img", src=re.compile("csv.gif$")).find_parent("a").get("href")
-kensa_csv = tag[3].find("img", src=re.compile("csv.gif$")).find_parent("a").get("href")
+soudan_xlsx = (
+    tag[1].find("img", src=re.compile("excel.gif$")).find_parent("a").get("href")
+)
+kanja_xlsx = (
+    tag[2].find("img", src=re.compile("excel.gif$")).find_parent("a").get("href")
+)
+kensa_xlsx = (
+    tag[3].find("img", src=re.compile("excel.gif$")).find_parent("a").get("href")
+)
 
 # ファイルダウンロード
 
-soudan_path = get_file(soudan_csv, "soudan.csv", DOWNLOAD_DIR)
-kensa_path = get_file(kensa_csv, "kensa.csv", DOWNLOAD_DIR)
-kanja_path = get_file(kanja_csv, "kanja.csv", DOWNLOAD_DIR)
+soudan_path = get_file(soudan_xlsx, "soudan.xlsx", DOWNLOAD_DIR)
+kensa_path = get_file(kensa_xlsx, "kensa.xlsx", DOWNLOAD_DIR)
+kanja_path = get_file(kanja_xlsx, "kanja.xlsx", DOWNLOAD_DIR)
 
 # データラングリング
 
@@ -76,16 +72,7 @@ dt_update = dt_now.strftime("%Y/%m/%d %H:%M")
 data = {"lastUpdate": dt_update}
 
 # contacts
-codec = get_enc(soudan_path)
-
-for sep in [",", "\t"]:
-
-    try:
-        df_soudan = pd.read_csv(soudan_path, sep=sep, encoding=codec)
-        break
-
-    except:
-        continue
+df_soudan = pd.read_excel(soudan_path)
 
 df_soudan["受付_年月日"] = pd.to_datetime(df_soudan["受付_年月日"])
 
@@ -105,22 +92,12 @@ data["contacts"] = {
 
 # inspections_summary
 
-codec = get_enc(kensa_path)
-
-for sep in [",", "\t"]:
-
-    try:
-        df_kensa = (
-            pd.read_csv(kensa_path, sep=sep, encoding=codec)
-            .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
-            .dropna()
-            .astype(int)
-        )
-
-        break
-
-    except:
-        continue
+df_kensa = (
+    pd.read_excel(kensa_path)
+    .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
+    .dropna()
+    .astype(int)
+)
 
 df_kensa.rename(columns={430005: "熊本県", 431001: "熊本市"}, inplace=True)
 
@@ -142,28 +119,16 @@ data["inspections_summary"] = {
 
 weeks = ["月", "火", "水", "木", "金", "土", "日"]
 
-codec = get_enc(kanja_path)
-
-for sep in [",", "\t"]:
-
-    try:
-        df_kanja = pd.read_csv(
-            kanja_path,
-            sep=sep,
-            parse_dates=["公表_年月日", "確定_年月日"],
-            dtype={
-                "No": "int",
-                "全国地方公共団体コード": "Int64",
-                "患者_渡航歴の有無フラグ": "Int64",
-                "患者_退院済フラグ": "Int64",
-            },
-            encoding=codec,
-        )
-
-        break
-
-    except:
-        continue
+df_kanja = pd.read_excel(
+    kanja_path,
+    parse_dates=["公表_年月日", "確定_年月日"],
+    dtype={
+        "No": "int",
+        "全国地方公共団体コード": "Int64",
+        "患者_渡航歴の有無フラグ": "Int64",
+        "患者_退院済フラグ": "Int64",
+    },
+)
 
 df_kanja.dropna(how="all", inplace=True)
 
