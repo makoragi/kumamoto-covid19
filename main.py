@@ -21,6 +21,7 @@ DATA_DIR = "data"
 
 # ファイルダウンロード
 
+
 @retry(tries=5, delay=5, backoff=3)
 def get_file(url, file_name, dir="."):
 
@@ -136,7 +137,7 @@ df_kanja.columns = df_kanja.columns.map(lambda s: s.replace("患者_", ""))
 
 df_kanja.rename(columns={"No": "県番号"}, inplace=True)
 
-df_kanja["リリース日"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
+df_kanja["確定日"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
 df_kanja["date"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%d")
 df_kanja["曜日"] = df_kanja["確定_年月日"].dt.dayofweek.apply(lambda x: weeks[x])
 df_kanja["退院"] = df_kanja["退院済フラグ"].replace({1: "○", 0: None})
@@ -175,7 +176,10 @@ df_kanja["状況"] = df_kanja["状況"].mask(
     (df_kanja["退院済フラグ"] == 1) & (df_kanja["状態"] != "死亡"), "退院"
 )
 
-situation = df_kanja["状況"].value_counts()
+situation = (
+    df_kanja["状況"].value_counts().reindex(["入院中", "退院", "死亡"]).fillna(0).astype(int)
+)
+
 condition = (
     df_kanja["症状"]
     .value_counts()
