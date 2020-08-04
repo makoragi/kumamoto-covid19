@@ -26,6 +26,7 @@ DATA_DIR = "data"
 def get_file(url, file_name, dir="."):
 
     r = requests.get(url, headers={"User-Agent": USER_AGENT})
+    r.raise_for_status()
 
     p = pathlib.Path(dir, file_name)
     p.parent.mkdir(parents=True, exist_ok=True)
