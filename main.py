@@ -165,11 +165,21 @@ data["patients_summary"] = {
 
 # main_summary
 
+# debug
+# pd.set_option('display.max_rows', None)
+# pd.set_option('display.max_columns', None)
+# pd.set_option('display.width', 200)
+
 # 状態の内死亡以外（無症状・軽症・中等症・重症・非公表）を症状にコピー
 df_kanja["症状"] = df_kanja["状態"].mask(df_kanja["状態"] == "死亡")
 
 # 状態の内死亡以外を入院中に変更
 df_kanja["状況"] = df_kanja["状態"].where(df_kanja["状態"] == "死亡", "入院中")
+
+# 死亡でなく症状がない場合、状況を確認中に変更
+df_kanja["状況"] = df_kanja["状況"].mask(
+    (pd.isnull(df_kanja["症状"])) & (df_kanja["状態"] != "死亡"), "確認中"
+)
 
 # 状態が死亡以外でかつ退院済みフラグが1の場合を退院に変更
 df_kanja["状況"] = df_kanja["状況"].mask(
@@ -177,7 +187,7 @@ df_kanja["状況"] = df_kanja["状況"].mask(
 )
 
 situation = (
-    df_kanja["状況"].value_counts().reindex(["入院中", "退院", "死亡"]).fillna(0).astype(int)
+    df_kanja["状況"].value_counts().reindex(["入院中", "確認中", "退院", "死亡"]).fillna(0).astype(int)
 )
 
 condition = (
@@ -201,12 +211,20 @@ data["main_summary"] = {
                     "value": int(situation["入院中"]),
                     "children": [
                         {
-                            "attr": "軽症・中等症",
-                            "value": int(condition.sum() - condition["重症"]),
+                            "attr": "無症状・軽症・中等症",
+                            "value": int(condition["無症状"] + condition["軽症"] + condition["中等症"]),
                         },
-                        {"attr": "重症", "value": int(condition["重症"])},
+                        {
+                            "attr": "重症",
+                            "value": int(condition["重症"])
+                        },
+                        {
+                            "attr": "その他",
+                            "value": int(situation["入院中"] - condition["無症状"] - condition["軽症"] - condition["中等症"] -  condition["重症"])
+                        }
                     ],
                 },
+                {"attr": "確認中", "value": int(situation["確認中"])},
                 {"attr": "退院", "value": int(situation["退院"])},
                 {"attr": "死亡", "value": int(situation["死亡"])},
             ],
