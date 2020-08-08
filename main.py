@@ -138,11 +138,12 @@ df_kanja.columns = df_kanja.columns.map(lambda s: s.replace("患者_", ""))
 df_kanja.rename(columns={"No": "県番号"}, inplace=True)
 
 df_kanja["確定日"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
+df_kanja["公表日"] = df_kanja["公表_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
 df_kanja["date"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%d")
 df_kanja["曜日"] = df_kanja["確定_年月日"].dt.dayofweek.apply(lambda x: weeks[x])
 df_kanja["退院"] = df_kanja["退院済フラグ"].replace({1: "○", 0: None})
 
-patients = df_kanja.loc[:, ["県番号", "確定日", "曜日", "居住地", "年代", "性別", "退院", "date"]]
+patients = df_kanja.loc[:, ["県番号", "確定日", "公表日", "曜日", "居住地", "年代", "性別", "退院", "date"]]
 
 data["patients"] = {
     "data": patients.to_dict(orient="records"),
