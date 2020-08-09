@@ -186,8 +186,10 @@ data["patients_summary_announced"] = {
 # pd.set_option('display.max_columns', None)
 # pd.set_option('display.width', 200)
 
-# 状態の内死亡以外（無症状・軽症・中等症・重症・非公表）を症状にコピー
-df_kanja["症状"] = df_kanja["状態"].mask(df_kanja["状態"] == "死亡")
+# 状態の内死亡や退院以外（無症状・軽症・中等症・重症・非公表）を症状にコピー
+df_kanja["症状"] = df_kanja["状態"].mask(
+    (df_kanja["状態"] == "死亡") | (df_kanja["退院済フラグ"] == 1)
+)
 
 # 状態の内死亡以外を入院中に変更
 df_kanja["状況"] = df_kanja["状態"].where(df_kanja["状態"] == "死亡", "入院中")
