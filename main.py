@@ -165,6 +165,20 @@ data["patients_summary"] = {
     "date": dt_update,
 }
 
+# patients_summary_announced
+
+ser_patients_ann = df_kanja["公表_年月日"].value_counts().sort_index()
+if df_kensa.index[-1] not in ser_patients_ann.index:
+    ser_patients_ann[df_kensa.index[-1]] = 0
+
+df_patients_ann = pd.DataFrame({"小計": ser_patients_ann.asfreq("D", fill_value=0)})
+df_patients_ann["日付"] = df_patients_ann.index.strftime("%Y-%m-%dT08:00:00.000Z")
+
+data["patients_summary_announced"] = {
+    "data": df_patients_ann.to_dict(orient="records"),
+    "date": dt_update,
+}
+
 # main_summary
 
 # 状態の内死亡以外（無症状・軽症・中等症・重症・非公表）を症状にコピー
