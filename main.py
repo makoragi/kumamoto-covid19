@@ -192,8 +192,12 @@ df_kanja["状況"] = df_kanja["状況"].mask(
     (df_kanja["退院済フラグ"] == 1) & (df_kanja["状態"] != "死亡"), "退院"
 )
 
+df_kanja["状況"] = df_kanja["状況"].mask(
+    (df_kanja["状況"] == "入院中") & (df_kanja["症状"].isnull()), "確認中"
+)
+
 situation = (
-    df_kanja["状況"].value_counts().reindex(["入院中", "退院", "死亡"]).fillna(0).astype(int)
+    df_kanja["状況"].value_counts().reindex(["入院中", "退院", "死亡", "確認中"]).fillna(0).astype(int)
 )
 
 condition = (
@@ -221,8 +225,10 @@ data["main_summary"] = {
                             "value": int(condition.sum() - condition["重症"]),
                         },
                         {"attr": "重症", "value": int(condition["重症"])},
+                        {"attr": "その他", "value": 0},
                     ],
                 },
+                {"attr": "確認中", "value": int(situation["確認中"])},
                 {"attr": "退院", "value": int(situation["退院"])},
                 {"attr": "死亡", "value": int(situation["死亡"])},
             ],
