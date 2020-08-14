@@ -11,6 +11,7 @@ import pandas as pd
 import requests
 
 from retry import retry
+import simplejson as json
 
 # 設定
 
@@ -242,4 +243,4 @@ p = pathlib.Path(DATA_DIR, "data.json")
 p.parent.mkdir(parents=True, exist_ok=True)
 
 with p.open(mode="w", encoding="utf-8") as fw:
-    json.dump(data, fw, ensure_ascii=False, indent=4)
+    json.dump(data, fw, ignore_nan=True, ensure_ascii=False, indent=4)
