@@ -97,8 +97,9 @@ data["contacts"] = {
 
 df_kensa = (
     pd.read_excel(kensa_path)
+    .dropna(subset=["実施_年月日"])
     .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
-    .dropna()
+    .fillna(0)
     .astype(int)
 )
 
