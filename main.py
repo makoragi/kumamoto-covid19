@@ -134,9 +134,8 @@ df_kanja = pd.read_excel(
     },
 )
 
-# 行でデータが7つ未満は削除
-# 全国地方公共団体コード、都道府県名、公表_年月日、患者_居住地、患者_年代、患者_性別、患者_職業等の7個以上記入がある場合
-df_kanja.dropna(thresh=7, inplace=True)
+# 確定_年月日がないものを除去
+df_kanja.dropna(subset=["確定_年月日"], inplace=True)
 
 df_kanja.columns = df_kanja.columns.map(lambda s: s.replace("患者_", ""))
 
