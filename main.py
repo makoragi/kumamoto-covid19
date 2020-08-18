@@ -11,6 +11,7 @@ import pandas as pd
 import requests
 
 from retry import retry
+import simplejson as json
 
 # 設定
 
@@ -26,6 +27,7 @@ DATA_DIR = "data"
 def get_file(url, file_name, dir="."):
 
     r = requests.get(url, headers={"User-Agent": USER_AGENT})
+    r.raise_for_status()
 
     p = pathlib.Path(dir, file_name)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -95,8 +97,9 @@ data["contacts"] = {
 
 df_kensa = (
     pd.read_excel(kensa_path)
+    .dropna(subset=["実施_年月日"])
     .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
-    .dropna()
+    .fillna(0)
     .astype(int)
 )
 
@@ -131,19 +134,21 @@ df_kanja = pd.read_excel(
     },
 )
 
-df_kanja.dropna(how="all", inplace=True)
+# 確定_年月日がないものを除去
+df_kanja.dropna(subset=["確定_年月日"], inplace=True)
 
 df_kanja.columns = df_kanja.columns.map(lambda s: s.replace("患者_", ""))
 
 df_kanja.rename(columns={"No": "県番号"}, inplace=True)
 
+df_kanja["公表日"] = df_kanja["公表_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
 df_kanja["確定日"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
 df_kanja["公表日"] = df_kanja["公表_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
 df_kanja["date"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%d")
 df_kanja["曜日"] = df_kanja["確定_年月日"].dt.dayofweek.apply(lambda x: weeks[x])
 df_kanja["退院"] = df_kanja["退院済フラグ"].replace({1: "○", 0: None})
 
-patients = df_kanja.loc[:, ["県番号", "確定日", "公表日", "曜日", "居住地", "年代", "性別", "退院", "date"]]
+patients = df_kanja.loc[:, ["県番号", "公表日", "確定日", "曜日", "居住地", "年代", "性別", "退院", "date"]]
 
 data["patients"] = {
     "data": patients.to_dict(orient="records"),
@@ -166,18 +171,17 @@ data["patients_summary"] = {
 
 # patients_summary_announced
 
-ser_patients_sum_ann = df_kanja["公表_年月日"].value_counts().sort_index()
-if df_kensa.index[-1] not in ser_patients_sum_ann.index:
-    ser_patients_sum_ann[df_kensa.index[-1]] = 0
+ser_patients_ann = df_kanja["公表_年月日"].value_counts().sort_index()
+if df_kensa.index[-1] not in ser_patients_ann.index:
+    ser_patients_ann[df_kensa.index[-1]] = 0
 
-df_patients_sum_ann = pd.DataFrame({"小計": ser_patients_sum_ann.asfreq("D", fill_value=0)})
-df_patients_sum_ann["日付"] = df_patients_sum_ann.index.strftime("%Y-%m-%dT08:00:00.000Z")
+df_patients_ann = pd.DataFrame({"小計": ser_patients_ann.asfreq("D", fill_value=0)})
+df_patients_ann["日付"] = df_patients_ann.index.strftime("%Y-%m-%dT08:00:00.000Z")
 
 data["patients_summary_announced"] = {
-    "data": df_patients_sum_ann.to_dict(orient="records"),
+    "data": df_patients_ann.to_dict(orient="records"),
     "date": dt_update,
 }
-
 
 # main_summary
 
@@ -204,8 +208,12 @@ df_kanja["状況"] = df_kanja["状況"].mask(
     (df_kanja["退院済フラグ"] == 1) & (df_kanja["状態"] != "死亡"), "退院"
 )
 
+df_kanja["状況"] = df_kanja["状況"].mask(
+    (df_kanja["状況"] == "入院中") & (df_kanja["症状"].isnull()), "確認中"
+)
+
 situation = (
-    df_kanja["状況"].value_counts().reindex(["入院中", "確認中", "退院", "死亡"]).fillna(0).astype(int)
+    df_kanja["状況"].value_counts().reindex(["入院中", "退院", "死亡", "確認中"]).fillna(0).astype(int)
 )
 
 condition = (
@@ -230,16 +238,10 @@ data["main_summary"] = {
                     "children": [
                         {
                             "attr": "無症状・軽症・中等症",
-                            "value": int(condition["無症状"] + condition["軽症"] + condition["中等症"]),
+                            "value": int(condition.sum() - condition["重症"]),
                         },
-                        {
-                            "attr": "重症",
-                            "value": int(condition["重症"])
-                        },
-                        {
-                            "attr": "その他",
-                            "value": int(situation["入院中"] - condition["無症状"] - condition["軽症"] - condition["中等症"] -  condition["重症"])
-                        }
+                        {"attr": "重症", "value": int(condition["重症"])},
+                        {"attr": "その他", "value": 0},
                     ],
                 },
                 {"attr": "確認中", "value": int(situation["確認中"])},
@@ -256,4 +258,4 @@ p = pathlib.Path(DATA_DIR, "data.json")
 p.parent.mkdir(parents=True, exist_ok=True)
 
 with p.open(mode="w", encoding="utf-8") as fw:
-    json.dump(data, fw, ensure_ascii=False, indent=4)
+    json.dump(data, fw, ignore_nan=True, ensure_ascii=False, indent=4)
