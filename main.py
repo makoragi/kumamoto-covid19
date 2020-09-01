@@ -157,8 +157,10 @@ data["patients"] = {
 # patients_summary
 
 ser_patients_sum = df_kanja["確定_年月日"].value_counts().sort_index()
-if df_kensa.index[-1] not in ser_patients_sum.index:
+if df_kensa.index[-1] > ser_patients_sum.index[-1]:
     ser_patients_sum[df_kensa.index[-1]] = 0
+
+ser_patients_sum.sort_index(inplace=True)
 
 df_patients_sum = pd.DataFrame({"小計": ser_patients_sum.asfreq("D", fill_value=0)})
 df_patients_sum["日付"] = df_patients_sum.index.strftime("%Y-%m-%dT08:00:00.000Z")
@@ -171,8 +173,10 @@ data["patients_summary"] = {
 # patients_summary_announced
 
 ser_patients_ann = df_kanja["公表_年月日"].value_counts().sort_index()
-if df_kensa.index[-1] not in ser_patients_ann.index:
+if df_kensa.index[-1] > ser_patients_ann.index[-1]:
     ser_patients_ann[df_kensa.index[-1]] = 0
+
+ser_patients_ann.sort_index(inplace=True)
 
 df_patients_ann = pd.DataFrame({"小計": ser_patients_ann.asfreq("D", fill_value=0)})
 df_patients_ann["日付"] = df_patients_ann.index.strftime("%Y-%m-%dT08:00:00.000Z")
