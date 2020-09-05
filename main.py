@@ -141,6 +141,9 @@ df_kanja.columns = df_kanja.columns.map(lambda s: s.replace("患者_", ""))
 
 df_kanja.rename(columns={"No": "県番号"}, inplace=True)
 
+df_kanja["渡航歴の有無フラグ"].fillna(0, inplace=True)
+df_kanja["退院済フラグ"].fillna(0, inplace=True)
+
 df_kanja["公表日"] = df_kanja["公表_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
 df_kanja["確定日"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%dT08:00:00.000Z")
 df_kanja["date"] = df_kanja["確定_年月日"].dt.strftime("%Y-%m-%d")
