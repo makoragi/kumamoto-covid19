@@ -61,9 +61,12 @@ kensa_xlsx = (
 
 # ファイルダウンロード
 
-soudan_path = get_file(soudan_xlsx, "soudan.xlsx", DOWNLOAD_DIR)
-kensa_path = get_file(kensa_xlsx, "kensa.xlsx", DOWNLOAD_DIR)
-kanja_path = get_file(kanja_xlsx, "kanja.xlsx", DOWNLOAD_DIR)
+# soudan_path = get_file(soudan_xlsx, "soudan.xlsx", DOWNLOAD_DIR)
+soudan_path = pathlib.Path(DOWNLOAD_DIR, "soudan.xlsx")
+# kensa_path = get_file(kensa_xlsx, "kensa.xlsx", DOWNLOAD_DIR)
+kensa_path = pathlib.Path(DOWNLOAD_DIR, "kensa.xlsx")
+# kanja_path = get_file(kanja_xlsx, "kanja.xlsx", DOWNLOAD_DIR)
+kanja_path = pathlib.Path(DOWNLOAD_DIR, "kanja.xlsx")
 
 # データラングリング
 
