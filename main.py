@@ -134,6 +134,8 @@ df_kanja = pd.read_excel(
     },
 )
 
+df_kanja.to_csv("43_kumamoto.csv")
+
 # 確定_年月日がないものを除去
 df_kanja.dropna(subset=["確定_年月日"], inplace=True)
 
