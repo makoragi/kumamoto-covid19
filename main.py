@@ -109,7 +109,7 @@ df_kensa.index = pd.to_datetime(df_kensa.index)
 
 df_kensa.sort_index(inplace=True)
 
-df_kensa.to_csv("kumamoto_kensa.csv", encoding="utf_8_sig")
+df_kensa.to_csv("./data/kumamoto_kensa.csv", encoding="utf_8_sig")
 
 labels = df_kensa.index.map(lambda s: f"{s.month}/{s.day}")
 
@@ -134,7 +134,7 @@ df_kanja = pd.read_excel(
     },
 )
 
-df_kanja.to_csv("43_kumamoto.csv")
+df_kanja.to_csv("./data/43_kumamoto.csv")
 
 # 確定_年月日がないものを除去
 df_kanja.dropna(subset=["確定_年月日"], inplace=True)
