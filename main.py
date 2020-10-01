@@ -138,7 +138,7 @@ df_kanja = pd.read_excel(
 
 p = pathlib.Path(DATA_DIR, "43_kumamoto.csv")
 p.parent.mkdir(parents=True, exist_ok=True)
-df_kanja.to_csv(p, encoding="utf_8_sig")
+df_kanja.to_csv(p, index=False, encoding="utf_8_sig")
 
 # 確定_年月日がないものを除去
 df_kanja.dropna(subset=["確定_年月日"], inplace=True)
