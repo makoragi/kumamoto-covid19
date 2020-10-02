@@ -109,10 +109,6 @@ df_kensa.index = pd.to_datetime(df_kensa.index)
 
 df_kensa.sort_index(inplace=True)
 
-p = pathlib.Path(DATA_DIR, "kumamoto_kensa.csv")
-p.parent.mkdir(parents=True, exist_ok=True)
-df_kensa.to_csv(p, encoding="utf_8_sig")
-
 labels = df_kensa.index.map(lambda s: f"{s.month}/{s.day}")
 
 data["inspections_summary"] = {
@@ -135,10 +131,6 @@ df_kanja = pd.read_excel(
         "患者_退院済フラグ": "Int64",
     },
 )
-
-p = pathlib.Path(DATA_DIR, "43_kumamoto.csv")
-p.parent.mkdir(parents=True, exist_ok=True)
-df_kanja.to_csv(p, index=False, encoding="utf_8_sig")
 
 # 確定_年月日がないものを除去
 df_kanja.dropna(subset=["確定_年月日"], inplace=True)
