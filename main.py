@@ -40,7 +40,7 @@ def get_file(url, file_name, dir="."):
 
 # スクレイピング
 
-url = "https://www.pref.kumamoto.jp/kiji_22038.html"
+url = "https://www.pref.kumamoto.jp/soshiki/211/50632.html"
 r = requests.get(url, headers={"User-Agent": USER_AGENT})
 r.raise_for_status()
 
