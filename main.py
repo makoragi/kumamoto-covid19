@@ -69,9 +69,8 @@ dt_update = dt_now.strftime("%Y/%m/%d %H:%M")
 data = {"lastUpdate": dt_update}
 
 # contacts
-df_soudan = pd.read_excel(soudan_path)
+df_soudan = pd.read_excel(soudan_path, engine="openpyxl", parse_dates=["受付_年月日"])
 
-df_soudan["受付_年月日"] = pd.to_datetime(df_soudan["受付_年月日"])
 df_soudan.set_index("受付_年月日", inplace=True)
 
 ser_contacts = pd.to_numeric(df_soudan["相談件数"], errors="coerce").dropna().astype(int)
@@ -87,7 +86,7 @@ data["contacts"] = {
 # inspections_summary
 
 df_kensa = (
-    pd.read_excel(kensa_path)
+    pd.read_excel(kensa_path, engine="openpyxl", parse_dates=["実施_年月日"])
     .dropna(subset=["実施_年月日"])
     .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
     .fillna(0)
@@ -95,8 +94,6 @@ df_kensa = (
 )
 
 df_kensa.rename(columns={430005: "熊本県", 431001: "熊本市"}, inplace=True)
-
-df_kensa.index = pd.to_datetime(df_kensa.index)
 
 df_kensa.sort_index(inplace=True)
 
@@ -114,14 +111,17 @@ weeks = ["月", "火", "水", "木", "金", "土", "日"]
 
 df_kanja = pd.read_excel(
     kanja_path,
-    parse_dates=["公表_年月日", "確定_年月日"],
     dtype={
         "No": "int",
         "全国地方公共団体コード": "Int64",
         "患者_渡航歴の有無フラグ": "Int64",
         "患者_退院済フラグ": "Int64",
     },
+    engine="openpyxl",
 )
+
+df_kanja["公表_年月日"] = pd.to_datetime(df_kanja["公表_年月日"], errors="coerce")
+df_kanja["確定_年月日"] = pd.to_datetime(df_kanja["確定_年月日"], errors="coerce")
 
 # 確定_年月日がないものを除去
 df_kanja.dropna(subset=["確定_年月日"], inplace=True)
