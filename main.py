@@ -69,7 +69,7 @@ dt_update = dt_now.strftime("%Y/%m/%d %H:%M")
 data = {"lastUpdate": dt_update}
 
 # contacts
-df_soudan = pd.read_excel(soudan_path)
+df_soudan = pd.read_excel(soudan_path, engine="openpyxl")
 
 df_soudan["受付_年月日"] = pd.to_datetime(df_soudan["受付_年月日"])
 df_soudan.set_index("受付_年月日", inplace=True)
@@ -87,7 +87,7 @@ data["contacts"] = {
 # inspections_summary
 
 df_kensa = (
-    pd.read_excel(kensa_path)
+    pd.read_excel(kensa_path, engine="openpyxl")
     .dropna(subset=["実施_年月日"])
     .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
     .fillna(0)
@@ -121,6 +121,7 @@ df_kanja = pd.read_excel(
         "患者_渡航歴の有無フラグ": "Int64",
         "患者_退院済フラグ": "Int64",
     },
+    engine="openpyxl",
 )
 
 # 確定_年月日がないものを除去
