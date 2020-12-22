@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 import datetime
 import json
 import pathlib
 import re
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-import chardet
 import pandas as pd
 import requests
 
@@ -22,7 +20,6 @@ DATA_DIR = "data"
 
 # ファイルダウンロード
 
-
 @retry(tries=5, delay=5, backoff=3)
 def get_file(url, file_name, dir="."):
 
@@ -37,35 +34,32 @@ def get_file(url, file_name, dir="."):
 
     return p
 
+url = "https://www.pref.kumamoto.jp/soshiki/211/50632.html"
 
-# スクレイピング
-
-url = "https://www.pref.kumamoto.jp/kiji_22038.html"
 r = requests.get(url, headers={"User-Agent": USER_AGENT})
 r.raise_for_status()
 
 soup = BeautifulSoup(r.content, "html.parser")
-tag = soup.find("h3", text=re.compile("新型コロナウイルス感染症")).parent.find_all("tr")
 
-# オープンデータのURL
+xlsx_urls = {}
 
-soudan_xlsx = (
-    tag[1].find("img", src=re.compile("excel.gif$")).find_parent("a").get("href")
-)
-kanja_xlsx = (
-    tag[2].find("img", src=re.compile("excel.gif$")).find_parent("a").get("href")
-)
-kensa_xlsx = (
-    tag[3].find("img", src=re.compile("excel.gif$")).find_parent("a").get("href")
-)
+for trs in soup.find("h3", text="新型コロナウイルス感染症").find_next("table").select("tbody > tr"):
+    tds = trs.find_all("td")
+    s = tds[0].get_text(strip=True)
+
+    m = re.match("(帰国者・接触者相談センター相談件数|陽性患者属性|検査件数)", s)
+
+    if m:
+
+        xlsx_urls[m.group(0)] = urljoin(url, tds[2].find("a").get("href"))
 
 # ファイルダウンロード
 
-# soudan_path = get_file(soudan_xlsx, "soudan.xlsx", DOWNLOAD_DIR)
+# soudan_path = get_file(xlsx_urls["帰国者・接触者相談センター相談件数"], "soudan.xlsx", DOWNLOAD_DIR)
 soudan_path = pathlib.Path(DOWNLOAD_DIR, "soudan.xlsx")
-# kensa_path = get_file(kensa_xlsx, "kensa.xlsx", DOWNLOAD_DIR)
+# kensa_path = get_file(xlsx_urls["検査件数"], "kensa.xlsx", DOWNLOAD_DIR)
 kensa_path = pathlib.Path(DOWNLOAD_DIR, "kensa.xlsx")
-# kanja_path = get_file(kanja_xlsx, "kanja.xlsx", DOWNLOAD_DIR)
+# kanja_path = get_file(xlsx_urls["陽性患者属性"], "kanja.xlsx", DOWNLOAD_DIR)
 kanja_path = pathlib.Path(DOWNLOAD_DIR, "kanja.xlsx")
 
 # データラングリング
@@ -78,13 +72,9 @@ dt_update = dt_now.strftime("%Y/%m/%d %H:%M")
 data = {"lastUpdate": dt_update}
 
 # contacts
-df_soudan = pd.read_excel(soudan_path)
-
-df_soudan["受付_年月日"] = pd.to_datetime(df_soudan["受付_年月日"])
+df_soudan = pd.read_excel(soudan_path, engine="openpyxl", parse_dates=["受付_年月日"])
 
 df_soudan.set_index("受付_年月日", inplace=True)
-
-pd.to_numeric(df_soudan["相談件数"], errors="coerce").dropna().astype(int)
 
 ser_contacts = pd.to_numeric(df_soudan["相談件数"], errors="coerce").dropna().astype(int)
 
@@ -99,7 +89,7 @@ data["contacts"] = {
 # inspections_summary
 
 df_kensa = (
-    pd.read_excel(kensa_path)
+    pd.read_excel(kensa_path, engine="openpyxl", parse_dates=["実施_年月日"])
     .dropna(subset=["実施_年月日"])
     .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
     .fillna(0)
@@ -108,11 +98,7 @@ df_kensa = (
 
 df_kensa.rename(columns={430005: "熊本県", 431001: "熊本市"}, inplace=True)
 
-df_kensa.index = pd.to_datetime(df_kensa.index)
-
 df_kensa.sort_index(inplace=True)
-
-df_kensa.to_csv("kumamoto_kensa.csv", encoding="utf_8_sig")
 
 labels = df_kensa.index.map(lambda s: f"{s.month}/{s.day}")
 
@@ -128,14 +114,17 @@ weeks = ["月", "火", "水", "木", "金", "土", "日"]
 
 df_kanja = pd.read_excel(
     kanja_path,
-    parse_dates=["公表_年月日", "確定_年月日"],
     dtype={
         "No": "int",
         "全国地方公共団体コード": "Int64",
         "患者_渡航歴の有無フラグ": "Int64",
         "患者_退院済フラグ": "Int64",
     },
+    engine="openpyxl",
 )
+
+df_kanja["公表_年月日"] = pd.to_datetime(df_kanja["公表_年月日"], errors="coerce")
+df_kanja["確定_年月日"] = pd.to_datetime(df_kanja["確定_年月日"], errors="coerce")
 
 # 確定_年月日がないものを除去
 df_kanja.dropna(subset=["確定_年月日"], inplace=True)
