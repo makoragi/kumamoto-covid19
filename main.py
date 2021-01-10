@@ -118,6 +118,7 @@ df_kanja = pd.read_excel(
         "患者_退院済フラグ": "Int64",
     },
     engine="openpyxl",
+    na_values={"欠番"},
 )
 
 df_kanja["公表_年月日"] = pd.to_datetime(df_kanja["公表_年月日"], errors="coerce")
