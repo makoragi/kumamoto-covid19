@@ -34,7 +34,7 @@ def get_file(url, file_name, dir="."):
 
     return p
 
-url = "https://www.pref.kumamoto.jp/soshiki/211/50632.html"
+url = "https://www.pref.kumamoto.jp/soshiki/211/82808.html"
 
 r = requests.get(url, headers={"User-Agent": USER_AGENT})
 r.raise_for_status()
