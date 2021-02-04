@@ -88,6 +88,7 @@ data["contacts"] = {
 df_kensa = (
     pd.read_excel(kensa_path, engine="openpyxl", parse_dates=["実施_年月日"])
     .dropna(subset=["実施_年月日"])
+    .replace({431005: 430005}) #オープンデータの間違いへ対応
     .pivot(index="実施_年月日", columns="全国地方公共団体コード", values="検査実施_件数")
     .fillna(0)
     .astype(int)
@@ -97,7 +98,7 @@ df_kensa.rename(columns={430005: "熊本県", 431001: "熊本市"}, inplace=True
 
 df_kensa.sort_index(inplace=True)
 
-labels = df_kensa.index.map(lambda s: f"{s.month}/{s.day}")
+labels = df_kensa.index.map(lambda s: f"{s.year}/{s.month}/{s.day}")
 
 data["inspections_summary"] = {
     "data": df_kensa.to_dict(orient="list"),
@@ -112,7 +113,7 @@ weeks = ["月", "火", "水", "木", "金", "土", "日"]
 df_kanja = pd.read_excel(
     kanja_path,
     dtype={
-        "No": "int",
+        "No": "str",
         "全国地方公共団体コード": "Int64",
         "患者_渡航歴の有無フラグ": "Int64",
         "患者_退院済フラグ": "Int64",
